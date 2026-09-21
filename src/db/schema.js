@@ -1,4 +1,4 @@
-import sql from "./dbClient";
+import { sql } from "./dbClient.js";
 
 async function createSchema() {
   await sql`

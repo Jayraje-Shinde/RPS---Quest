@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "db:create": "node schema.js",
-    "db:seed": "node seed.js"
+    "db:create": "node src/db/schema.js",
+    "db:seed": "node src/db/seed.js",
+    "express": "node src/expressServer.js",
+    "cpeak": "node src/cpeakServer.js"
   },
   "repository": {
     "type": "git",
