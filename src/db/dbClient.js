@@ -1,6 +1,5 @@
 import postgres from "postgres";
-import dotenv from 'dotenv'
-dotenv.config();
+
 
 const sql = postgres({
   host: "process.env.DB_HOST",
@@ -10,11 +9,5 @@ const sql = postgres({
   database: "process.env.DB_NAME"
 });
 
-try {
-  await sql`SELECT 1`;
-  console.log("Connected to the database");
-} catch (error) {
-  console.error("Failed to connect to the database", error);
-}
 
 export { sql };
