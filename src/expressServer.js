@@ -22,6 +22,23 @@ app.get('/customers', async (req, res) => {
   res.json(customers);
 });
 
+app.post('/customers', async (req, res) => {
+  const { name, email, city, country } = req.body;
+  await sql`INSERT INTO customers (name, email, city, country) VALUES (${name}, ${email}, ${city}, ${country})`;
+  res.send('Customer added');
+});
+
+app.put('/customers/:id', async(req, res) => {
+  const { name, email, city, country } = req.body;
+  await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
+  res.send('Customer updated');
+});
+
+app.delete('/customers/:id', async (req, res) => {
+  await sql`DELETE FROM customers WHERE id=${req.params.id}`;
+  res.send('Customer deleted');
+});
+
 
 app.listen(3000, () => {
   console.log('Server is running on http://localhost:3000')

@@ -6,7 +6,7 @@ async function createSchema() {
     CREATE TABLE IF NOT EXISTS customers (
       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
-      email VARCHAR(150) UNIQUE NOT NULL,
+      email VARCHAR(150) NOT NULL,
       city VARCHAR(100),
       country VARCHAR(100),
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
