@@ -18,9 +18,10 @@ app.get('/', (req, res) => {
   res.send('Hello World')
 })
 
-app.get('/customers', async (req, res) => {
-  const customers = await sql`SELECT * FROM customers`;
+app.get('/customers/:id', async (req, res) => {
+  const customers = await sql`SELECT * FROM customers WHERE id=${req.params.id}`;
   res.json(customers);
+
 });
 
 app.post('/customers', async (req, res) => {

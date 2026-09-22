@@ -21,6 +21,7 @@ server.route("get", "/", (req, res) => {
 
 server.route("get", '/customers/:id', async (req, res) => {
   const customers = await sql`SELECT * FROM customers where id=${req.params.id}`;
+  console.log("Customers fetched", customers);
   res.json(customers);
 });
 
