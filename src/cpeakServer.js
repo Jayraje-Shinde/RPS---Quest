@@ -16,7 +16,13 @@ const server = cpeak();
 server.route("get", "/", (req, res) => {
   return res.json({ message: "Hi there!" });
 });
-sql;
+
+
+server.route("get", '/customers', async (req, res) => {
+  const customers = await sql`SELECT * FROM customers`;
+  res.json(customers);
+});
+
 
 
 server.listen(3000, () => {

@@ -17,9 +17,11 @@ app.get('/', (req, res) => {
   res.send('Hello World')
 })
 
-if(sql) {
-  console.log('Database connected');
-}
+app.get('/customers', async (req, res) => {
+  const customers = await sql`SELECT * FROM customers`;
+  res.json(customers);
+});
+
 
 app.listen(3000, () => {
   console.log('Server is running on http://localhost:3000')

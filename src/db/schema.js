@@ -1,8 +1,9 @@
+import "../config/env.js";
 import { sql } from "./dbClient.js";
 
 async function createSchema() {
   await sql`
-    CREATE TABLE customers (
+    CREATE TABLE IF NOT EXISTS customers (
       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       email VARCHAR(150) UNIQUE NOT NULL,
@@ -13,7 +14,7 @@ async function createSchema() {
   `;
 
   await sql`
-    CREATE TABLE products (
+    CREATE TABLE IF NOT EXISTS products (
       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       name VARCHAR(150) NOT NULL,
       category VARCHAR(100) NOT NULL,
@@ -24,7 +25,7 @@ async function createSchema() {
   `;
 
   await sql`
-    CREATE TABLE orders (
+    CREATE TABLE IF NOT EXISTS orders (
       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       customer_id BIGINT NOT NULL,
       status VARCHAR(30) NOT NULL,
@@ -37,7 +38,7 @@ async function createSchema() {
   `;
 
   await sql`
-    CREATE TABLE order_items (
+    CREATE TABLE IF NOT EXISTS order_items (
       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       order_id BIGINT NOT NULL,
       product_id BIGINT NOT NULL,
