@@ -14,6 +14,7 @@ try {
 const app = express()
 
 app.get('/', (req, res) => {
+   console.log("Request received");g
   res.send('Hello World')
 })
 

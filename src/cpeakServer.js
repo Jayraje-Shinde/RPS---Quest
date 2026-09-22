@@ -14,6 +14,7 @@ try {
 const server = cpeak();
 
 server.route("get", "/", (req, res) => {
+  console.log("Request received");
   return res.json({ message: "Hi there!" });
 });
 
