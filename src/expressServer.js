@@ -1,6 +1,6 @@
 import express from 'express'
 import "./config/env.js";
-
+import { writeBuffer } from "./redis/redis.js";
 import { sql } from "./db/dbClient.js";
 
 try {
@@ -19,20 +19,36 @@ app.get('/', (req, res) => {
 })
 
 app.get('/customers/:id', async (req, res) => {
-  const customers = await sql`SELECT * FROM customers WHERE id=${req.params.id}`;
-  res.json(customers);
+
+  const customer = await redisClient.get(`customer:${req.params.id}`);
+
+  if(customer) {
+    return res.json(customer);
+  } else {
+    const customers =
+      await sql`SELECT * FROM customers where id=${req.params.id}`;
+    res.json(customers);
+
+    await redisClient.set(`customer:${req.params.id}`, customers);
+  }
 
 });
 
 app.post('/customers', async (req, res) => {
   const { name, email, city, country } = req.body;
-  await sql`INSERT INTO customers (name, email, city, country) VALUES (${name}, ${email}, ${city}, ${country})`;
-  res.send('Customer added');
+
+  const id = await writeBuffer("CREATE_USER", { name, email, city, country });
+
+  res.status(201).json({
+    message: "Customer queue for creation",
+    id,
+  });
 });
 
 app.put('/customers/:id', async(req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
+   await redisClient.del(`customer:${req.params.id}`);
   res.send('Customer updated');
 });
 

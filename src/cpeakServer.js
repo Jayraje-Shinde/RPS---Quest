@@ -10,36 +10,60 @@ try {
   console.error("Failed to connect to the database", error);
 }
 
+import { redisClient, writeBuffer } from "./redis/redis.js";
 
 const server = cpeak();
 
 server.route("get", "/", (req, res) => {
+
+
   console.log("Request received");
   return res.json({ message: "Hi there!" });
 });
 
+server.route("get", "/customers/:id", async (req, res) => {
 
-server.route("get", '/customers/:id', async (req, res) => {
-  const customers = await sql`SELECT * FROM customers where id=${req.params.id}`;
-  console.log("Customers fetched", customers);
-  res.json(customers);
+  const customer = await redisClient.get(`customer:${req.params.id}`);
+
+  if(customer) {
+    return res.json(customer);
+  } else {
+    const customers =
+      await sql`SELECT * FROM customers where id=${req.params.id}`;
+    res.json(customers);
+
+    await redisClient.set(`customer:${req.params.id}`, JSON.stringify(customers), {
+      expiration: 300,
+    });
+  }
+
+
 });
 
-server.route("post", '/customers', async (req, res) => {
+server.route("post", "/customers", async (req, res) => {
   const { name, email, city, country } = req.body;
-  await sql`INSERT INTO customers (name, email, city, country) VALUES (${name}, ${email}, ${city}, ${country})`;
-  res.send('Customer added');
+
+  const id = await writeBuffer("CREATE_USER", { name, email, city, country });
+
+  res.status(202).json({
+    message: "Customer queue for creation",
+    id,
+  });
 });
 
-server.route("put", '/customers/:id', async (req, res) => {
+server.route("put", "/customers/:id", async (req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
-  res.send('Customer updated');
+
+  await redisClient.del(`customer:${req.params.id}`);
+
+
+  res.send("Customer updated");
 });
 
-server.route("delete", '/customers/:id', async (req, res) => {
+server.route("delete", "/customers/:id", async (req, res) => {
   await sql`DELETE FROM customers WHERE id=${req.params.id}`;
-  res.send('Customer deleted');
+  res.send("Customer deleted");
 });
 
 server.listen(3000, () => {
