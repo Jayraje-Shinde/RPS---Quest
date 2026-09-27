@@ -1,6 +1,6 @@
 import express from 'express'
 import "./config/env.js";
-import { writeBuffer } from "./redis/redis.js";
+import { writeBuffer, getValue,setKV} from "./redis/redis.js";
 import { sql } from "./db/dbClient.js";
 
 try {
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 
 app.get('/customers/:id', async (req, res) => {
 
-  const customer = await redisClient.get(`customer:${req.params.id}`);
+  const customer = getValue(`customer:${req.params.id}`);
 
   if(customer) {
     return res.json(customer);
@@ -29,7 +29,7 @@ app.get('/customers/:id', async (req, res) => {
       await sql`SELECT * FROM customers where id=${req.params.id}`;
     res.json(customers);
 
-    await redisClient.set(`customer:${req.params.id}`, customers);
+    setKV(`customer:${req.params.id}`, customers);
   }
 
 });
