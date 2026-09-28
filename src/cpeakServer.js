@@ -1,4 +1,4 @@
-import cpeak from "cpeak";
+import cpeak, { parseJSON} from "cpeak";
 import "./config/env.js";
 
 import { sql } from "./db/dbClient.js";
@@ -12,9 +12,10 @@ try {
 
 import { getValue,setKV, writeBuffer } from "./redis/redis.js";
 
-const server = cpeak();
+const server = cpeak({ compression: true });
 
 server.beforeEach(parseJSON({ limit: 1024 * 1024 }));
+
 server.route("get", "/", (req, res) => {
 
 
