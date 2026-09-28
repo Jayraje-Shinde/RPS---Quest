@@ -14,6 +14,7 @@ import { getValue,setKV, writeBuffer } from "./redis/redis.js";
 
 const server = cpeak();
 
+server.beforeEach(parseJSON({ limit: 1024 * 1024 }));
 server.route("get", "/", (req, res) => {
 
 
