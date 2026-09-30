@@ -1,9 +1,27 @@
 import { createClient } from "redis";
 
-const redisClient = createClient();
+const redisClient = createClient({
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+  },
+});
 
 await redisClient.connect();
 console.log("Connected to Redis");
+
+async function ensureConsumerGroup(streamName, groupName) {
+  try {
+    await redisClient.xGroupCreate(streamName, groupName, "$", { MKSTREAM: true });
+    console.log(`Created consumer group "${groupName}" on stream "${streamName}"`);
+  } catch (err) {
+    if (err.message.includes("BUSYGROUP")) {
+      console.log(`Consumer group "${groupName}" already exists, continuing`);
+    } else {
+      throw err;
+    }
+  }
+}
 
 async function setKV(key, value) {
   await redisClient.set(key, value);
@@ -61,4 +79,5 @@ export {
   writeBuffer,
   ackHelper,
   readBuffer,
+  ensureConsumerGroup
 };

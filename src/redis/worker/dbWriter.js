@@ -1,5 +1,5 @@
-import { sql } from "../../db/dbClient";
-import {  readBuffer, ackHelper } from "../redis";
+import { sql } from "../../db/dbClient.js";
+import {  readBuffer, ackHelper, ensureConsumerGroup} from "../redis.js";
 
 
 const BATCH_SIZE = Number(process.env.BATCHING_SIZE ?? 1000);
@@ -11,6 +11,8 @@ const BATCHING_TIMEOUT = Number(
 const batch = [];
 let batchTimer = null;
 
+
+await ensureConsumerGroup("dbStream", "db-writer");
 
 async function flushBatch() {
   if (batch.length === 0) return;

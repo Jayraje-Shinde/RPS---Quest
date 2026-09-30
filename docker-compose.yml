@@ -1,0 +1,90 @@
+networks:
+  rps-net:
+    driver: bridge
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - rps-net
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scaler
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: scaledb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scaler -d scaledb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rps-net
+
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rps-net
+
+  app:
+    build: .
+    command: node src/cpeakServer.js
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: scaler
+      DB_PASSWORD: 123
+      DB_NAME: scaledb
+      DB_MAX_CONNECTIONS: 10
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - rps-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: node src/redis/worker/dbWriter.js
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: scaler
+      DB_PASSWORD: 123
+      DB_NAME: scaledb
+      DB_MAX_CONNECTIONS: 10
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BATCHING_SIZE: 100
+      BATCHING_TIMEOUT: 10000
+    networks:
+      - rps-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
