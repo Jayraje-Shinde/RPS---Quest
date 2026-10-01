@@ -76,6 +76,6 @@ server.route("delete", "/customers/:id", async (req, res) => {
   res.send("Customer deleted");
 });
 
-server.listen(3000, () => {
-  console.log("Server has started on port 3000");
+server.listen(process.env.APP_PORT, () => {
+  console.log(`Server has started on port ${process.env.APP_PORT}`);
 });
