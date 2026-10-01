@@ -26,14 +26,14 @@ server.route("get", "/", (req, res) => {
 server.route("get", "/customers/:id", async (req, res) => {
 
   try {
-    console.log("ENTERED route, id param:", req.params.id);
+
     const customer = await getValue(`customer:${req.params.id}`);
     if(customer) {
       return res.json(customer);
     } else {
       const customers =
         await sql`SELECT * FROM customers where id=${req.params.id}`;
-        console.log("QUERY RESULT:", customers);
+
         res.json(customers);
 
       setKV(`customer:${req.params.id}`, JSON.stringify(customers), {
