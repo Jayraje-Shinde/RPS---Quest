@@ -58,6 +58,11 @@ services:
       REDIS_PORT: 6379
     networks:
       - rps-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     depends_on:
       postgres:
         condition: service_healthy
