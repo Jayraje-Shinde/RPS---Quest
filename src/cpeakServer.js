@@ -25,19 +25,27 @@ server.route("get", "/", (req, res) => {
 
 server.route("get", "/customers/:id", async (req, res) => {
 
-  const customer = getValue(`customer:${req.params.id}`);
+  try {
+    console.log("ENTERED route, id param:", req.params.id);
+    const customer = await getValue(`customer:${req.params.id}`);
+    if(customer) {
+      return res.json(customer);
+    } else {
+      const customers =
+        await sql`SELECT * FROM customers where id=${req.params.id}`;
+        console.log("QUERY RESULT:", customers);
+        res.json(customers);
 
-  if(customer) {
-    return res.json(customer);
-  } else {
-    const customers =
-      await sql`SELECT * FROM customers where id=${req.params.id}`;
-    res.json(customers);
-
-    setKV(`customer:${req.params.id}`, JSON.stringify(customers), {
-      expiration: 300,
-    });
+      setKV(`customer:${req.params.id}`, JSON.stringify(customers), {
+        expiration: 300,
+      });
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
+
+
 
 
 });
