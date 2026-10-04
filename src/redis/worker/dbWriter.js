@@ -1,4 +1,5 @@
 import { sql } from "../../db/dbClient.js";
+import "../../config/env.js"
 import {  readBuffer, ackHelper, ensureConsumerGroup} from "../redis.js";
 
 
