@@ -1,6 +1,6 @@
 import express from 'express'
 import "./config/env.js";
-import { writeBuffer, getValue,setKV} from "./redis/redis.js";
+import { writeBuffer, getValue, setKV, delKey} from "./redis/redis.js";
 import { sql } from "./db/dbClient.js";
 
 try {
@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 
 app.get('/customers/:id', async (req, res) => {
 
-  const customer = getValue(`customer:${req.params.id}`);
+  const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
 
   if(customer) {
     return res.json(customer);
@@ -32,7 +32,7 @@ app.get('/customers/:id', async (req, res) => {
       await sql`SELECT * FROM customers where id=${req.params.id}`;
     res.json(customers);
 
-    setKV(`customer:${req.params.id}`, customers);
+    setKV(`customer:${req.params.id}`, customers, 300);
   }
 
 });
@@ -51,7 +51,7 @@ app.post('/customers', async (req, res) => {
 app.put('/customers/:id', async(req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
-   await redisClient.del(`customer:${req.params.id}`);
+  await delKey(`customer:${req.params.id}`);
   res.send('Customer updated');
 });
 

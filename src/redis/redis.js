@@ -23,15 +23,15 @@ async function ensureConsumerGroup(streamName, groupName) {
   }
 }
 
-async function setKV(key, value) {
-  await redisClient.set(key, value);
+async function setKV(key, value, exp) {
+  await redisClient.set(key, value, { expiration: exp });
 }
 
 async function getValue(key) {
   return await redisClient.get(key);
 }
 
-async function deleteKey(key) {
+async function delKey(key) {
   await redisClient.del(key);
 }
 
@@ -75,7 +75,7 @@ export {
   redisClient,
   setKV,
   getValue,
-  deleteKey,
+  delKey,
   writeBuffer,
   ackHelper,
   readBuffer,

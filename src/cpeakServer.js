@@ -2,6 +2,7 @@ import cpeak, { parseJSON} from "cpeak";
 import "./config/env.js";
 
 import { sql } from "./db/dbClient.js";
+import { getValue, setKV, writeBuffer, delKey } from "./redis/redis.js";
 
 try {
   await sql`SELECT 1`;
@@ -10,7 +11,6 @@ try {
   console.error("Failed to connect to the database", error);
 }
 
-import { getValue,setKV, writeBuffer } from "./redis/redis.js";
 
 const server = cpeak({ compression: true });
 
@@ -27,7 +27,7 @@ server.route("get", "/customers/:id", async (req, res) => {
 
   try {
 
-    const customer = await getValue(`customer:${req.params.id}`);
+    const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
     if(customer) {
       return res.json(customer);
     } else {
@@ -65,7 +65,7 @@ server.route("put", "/customers/:id", async (req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
 
-  await redisClient.del(`customer:${req.params.id}`);
+  await delKey(`customer:${req.params.id}`);
 
 
   res.send("Customer updated");
