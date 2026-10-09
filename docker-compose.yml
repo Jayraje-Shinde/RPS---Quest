@@ -53,9 +53,13 @@ services:
       DB_USER: scaler
       DB_PASSWORD: 123
       DB_NAME: scaledb
-      DB_MAX_CONNECTIONS: 10
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      APP_PORT: 3000
+      BATCHING_SIZE: 100
+      BATCHING_TIMEOUT: 10000
+      DB_MAX_CONNECTIONS: 10
+
     networks:
       - rps-net
     deploy:
