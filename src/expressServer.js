@@ -57,6 +57,7 @@ app.put('/customers/:id', async(req, res) => {
 
 app.delete('/customers/:id', async (req, res) => {
   await sql`DELETE FROM customers WHERE id=${req.params.id}`;
+  await delKey(`customer: ${ req.params.id }`);
   res.send('Customer deleted');
 });
 

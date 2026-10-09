@@ -31,9 +31,7 @@ server.route("get", "/customers/:id", async (req, res) => {
 
       res.json(customers);
 
-      setKV(`customer:${req.params.id}`, JSON.stringify(customers), {
-        expiration: 300,
-      });
+      setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300);
     }
   } catch (error) {
     console.error("Error:", error);
