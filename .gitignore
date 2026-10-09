@@ -3,3 +3,4 @@ aws-t2-micro-scaledb.pem
 .env
 *.rar
 *.zip
+logs

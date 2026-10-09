@@ -36,6 +36,7 @@ async function delKey(key) {
 }
 
 async function writeBuffer(operation, payload) {
+
   const id = await redisClient.xAdd("dbStream", "*", {
     operation,
     payload: JSON.stringify(payload),

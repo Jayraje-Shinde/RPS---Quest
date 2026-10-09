@@ -1,5 +1,6 @@
 import { sql } from "../../db/dbClient.js";
-import "../../config/env.js"
+
+
 import {  readBuffer, ackHelper, ensureConsumerGroup} from "../redis.js";
 
 
@@ -28,10 +29,11 @@ async function flushBatch() {
 }
 
 async function write2DB(msgs) {
+
   const users = msgs
     .filter((msg) => msg.message.operation === "CREATE_USER")
     .map((msg) => JSON.parse(msg.message.payload));
-
+  console.log($sql(users, "name", "email", "city", "country"))
   if (users.length === 0) {
     return;
   }
