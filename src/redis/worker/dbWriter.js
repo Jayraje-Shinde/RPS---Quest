@@ -33,7 +33,7 @@ async function write2DB(msgs) {
   const users = msgs
     .filter((msg) => msg.message.operation === "CREATE_USER")
     .map((msg) => JSON.parse(msg.message.payload));
-  console.log($sql(users, "name", "email", "city", "country"))
+  console.log("Inserting ", users.length, users[0])
   if (users.length === 0) {
     return;
   }
