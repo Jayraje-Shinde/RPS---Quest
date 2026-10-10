@@ -1,5 +1,5 @@
 import { sql } from "../../db/dbClient.js";
-
+import "../../config/env.js"
 
 import {  readBuffer, ackHelper, ensureConsumerGroup} from "../redis.js";
 
@@ -29,16 +29,17 @@ async function flushBatch() {
 }
 
 async function write2DB(msgs) {
-
-  const users = msgs
-    .filter((msg) => msg.message.operation === "CREATE_USER")
-    .map((msg) => JSON.parse(msg.message.payload));
-  console.log("Inserting ", users.length, users[0])
-  if (users.length === 0) {
-    return;
+  const rows = [];
+  for (const m of msgs) {
+    if (m.message.operation !== "CREATE_USER") continue;
+    let p;
+    try { p = JSON.parse(m.message.payload); }
+    catch { console.error("bad json", m.id); continue; }
+    if (!p.name || !p.email) { console.error("invalid payload", m.id, p); continue; }
+    rows.push({ name: p.name, email: p.email, city: p.city ?? null, country: p.country ?? null });
   }
-
-  await sql`INSERT INTO customers (name, email, city, country) VALUES ${sql(users, "name", "email", "city", "country")}`;
+  if (rows.length === 0) return;
+  await sql`INSERT INTO customers (name, email, city, country) VALUES ${sql(rows, "name", "email", "city", "country")}`;
 }
 
 
