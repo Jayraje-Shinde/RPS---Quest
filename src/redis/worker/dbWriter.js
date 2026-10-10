@@ -44,12 +44,9 @@ async function write2DB(msgs) {
   for (const m of msgs) {
 
     const payload = JSON.parse(m.message.payload)
-    console.log(payload)
     const { name, email, city, country } = payload;
-    console.log(`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`)
     await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
-    console.log("Successfully inserted : ", m)
-  }
+     }
 }
 
 

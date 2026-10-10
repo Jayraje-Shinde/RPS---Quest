@@ -39,7 +39,7 @@ server.route("get", "/customers/:id", async (req, res) => {
   }
 });
 
-server.route("post", "/customers", async (req, res) => {
+server.route("post", "/customers/v2", async (req, res) => {
   const { name, email, city, country } = req.body;
 
   const id = await writeBuffer("CREATE_USER", { name, email, city, country });
@@ -47,6 +47,16 @@ server.route("post", "/customers", async (req, res) => {
   res.status(202).json({
     message: "Customer queue for creation",
     id,
+  });
+});
+
+server.route("post", "/customers/v1", async (req, res) => {
+  const { name, email, city, country } = req.body;
+
+  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
+
+  res.status(202).json({
+    message: "Customer Added"
   });
 });
 
