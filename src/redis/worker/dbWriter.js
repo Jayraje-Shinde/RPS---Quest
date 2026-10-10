@@ -2,6 +2,7 @@ import { sql } from "../../db/dbClient.js";
 import "../../config/env.js"
 
 import {  readBuffer, ackHelper, ensureConsumerGroup} from "../redis.js";
+import { parseJSON } from "cpeak";
 
 
 const BATCH_SIZE = Number(process.env.BATCHING_SIZE ?? 1000);
@@ -39,7 +40,16 @@ async function write2DB(msgs) {
     rows.push({ name: p.name, email: p.email, city: p.city ?? null, country: p.country ?? null });
   }
   if (rows.length === 0) return;
-  await sql`INSERT INTO customers (name, email, city, country) VALUES ${sql(rows, "name", "email", "city", "country")}`;
+
+  for (const m of msgs) {
+
+    const payload = JSON.parse(m.message.payload)
+    console.log(payload)
+    const { name, email, city, country } = payload;
+    console.log(`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`)
+    await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
+    console.log("Successfully inserted : ", m)
+  }
 }
 
 
