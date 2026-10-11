@@ -24,7 +24,9 @@ async function ensureConsumerGroup(streamName, groupName) {
 }
 
 async function setKV(key, value, exp) {
-  await redisClient.set(key, value, { EX: exp });
+
+    await redisClient.set(key, value, { EX: exp });
+
 }
 
 async function getValue(key) {

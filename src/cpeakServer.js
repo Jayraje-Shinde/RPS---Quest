@@ -4,6 +4,8 @@ import { trackRequests, log } from "./lib/logger.js";
 import { sql } from "./db/dbClient.js";
 import { getValue, setKV, writeBuffer, delKey } from "./redis/redis.js";
 
+
+//basic database connection check
 try {
   await sql`SELECT 1`;
   console.log("Connected to the database");
@@ -20,7 +22,23 @@ server.route("get", "/", (req, res) => {
   return res.json({ message: "Hi there!" });
 });
 
-server.route("get", "/customers/:id", async (req, res) => {
+server.route("get", "/customers/v1/:id", async (req, res) => {
+  try {
+
+      const customers =
+        await sql`SELECT * FROM customers where id=${req.params.id}`;
+
+      res.json(customers);
+
+
+    }
+  catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+server.route("get", "/customers/v2/:id", async (req, res) => {
   try {
     const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
     if (customer) {
@@ -31,12 +49,27 @@ server.route("get", "/customers/:id", async (req, res) => {
 
       res.json(customers);
 
-      setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300);
+      try {
+        setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300);
+      } catch (error) {
+      console.error("Error:", error);
+      return res.status(500).json({ message: "Internal server error" });
+      }
     }
   } catch (error) {
     console.error("Error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
+});
+
+server.route("post", "/customers/v1", async (req, res) => {
+  const { name, email, city, country } = req.body;
+
+  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
+
+  res.status(202).json({
+    message: "Customer Added"
+  });
 });
 
 server.route("post", "/customers/v2", async (req, res) => {
@@ -50,16 +83,6 @@ server.route("post", "/customers/v2", async (req, res) => {
   });
 });
 
-server.route("post", "/customers/v1", async (req, res) => {
-  const { name, email, city, country } = req.body;
-
-  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
-
-  res.status(202).json({
-    message: "Customer Added"
-  });
-});
-
 server.route("put", "/customers/:id", async (req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
@@ -69,7 +92,7 @@ server.route("put", "/customers/:id", async (req, res) => {
   res.send("Customer updated");
 });
 
-server.route("delete", "/customers/:id", async (req, res) => {
+server.route("delete", "/customers/v1/:id", async (req, res) => {
   await sql`DELETE FROM customers WHERE id=${req.params.id}`;
   res.send("Customer deleted");
 });
