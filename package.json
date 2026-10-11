@@ -8,7 +8,8 @@
     "db:create": "node src/db/schema.js",
     "db:seed": "node src/db/seed.js",
     "express": "node src/expressServer.js",
-    "cpeak": "node src/cpeakServer.js"
+    "cpeak": "node src/cpeakServer.js",
+     "dev": "nodemon src/cpeak.js"
   },
   "repository": {
     "type": "git",
@@ -27,5 +28,8 @@
     "express": "^5.2.1",
     "postgres": "^3.4.9",
     "redis": "^6.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

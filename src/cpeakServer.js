@@ -49,12 +49,9 @@ server.route("get", "/customers/v2/:id", async (req, res) => {
 
       res.json(customers);
 
-      try {
-        setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300);
-      } catch (error) {
-      console.error("Error:", error);
-      return res.status(500).json({ message: "Internal server error" });
-      }
+
+      setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300)
+        .catch((err) => console.error("cache set failed:", err.message));
     }
   } catch (error) {
     console.error("Error:", error);
