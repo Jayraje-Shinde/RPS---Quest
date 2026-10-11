@@ -1,82 +1,77 @@
 import { createClient } from "redis";
 
-const STREAM = "dbStream";
-const GROUP = "db-writer";
-const DEAD_STREAM = "dbStream:dead";
+const redisClient = createClient({
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+  },
+});
 
-function makeClient() {
-  const c = createClient({
-    socket: {
-      host: process.env.REDIS_HOST ?? "localhost",
-      port: Number(process.env.REDIS_PORT ?? 6379),
-    },
-  });
-  // Without an 'error' listener, node-redis throws on any connection error and kills the process.
-  c.on("error", (err) => console.error("redis error:", err.message));
-  return c;
-}
-
-const redisClient = makeClient();
 await redisClient.connect();
 console.log("Connected to Redis");
 
-// A blocking XREADGROUP occupies its connection for up to BLOCK ms. Sharing one connection
-// would stall XACK/XADD behind it, so the worker's blocking reads get their own connection.
-let readerClient = null;
-async function getReader() {
-  if (!readerClient) {
-    readerClient = makeClient();
-    await readerClient.connect();
-  }
-  return readerClient;
-}
-
-// "0" (not "$") so messages queued before the group existed are not skipped.
-async function ensureConsumerGroup() {
+async function ensureConsumerGroup(streamName, groupName) {
   try {
-    await redisClient.xGroupCreate(STREAM, GROUP, "0", { MKSTREAM: true });
-    console.log(`Created consumer group "${GROUP}" on stream "${STREAM}"`);
+    await redisClient.xGroupCreate(streamName, groupName, "$", { MKSTREAM: true });
+    console.log(`Created consumer group "${groupName}" on stream "${streamName}"`);
   } catch (err) {
-    if (!String(err.message).includes("BUSYGROUP")) throw err;
+    if (err.message.includes("BUSYGROUP")) {
+      console.log(`Consumer group "${groupName}" already exists, continuing`);
+    } else {
+      throw err;
+    }
   }
 }
 
-// These return the promise so callers can await it or attach .catch().
-const setKV = (key, value, ttlSeconds) => redisClient.set(key, value, { EX: ttlSeconds });
-const getValue = (key) => redisClient.get(key);
-const delKey = (key) => redisClient.del(key);
+async function setKV(key, value, exp) {
+
+    await redisClient.set(key, value, { EX: exp });
+
+}
+
+async function getValue(key) {
+  return await redisClient.get(key);
+}
+
+async function delKey(key) {
+  await redisClient.del(key);
+}
 
 async function writeBuffer(operation, payload) {
-  return redisClient.xAdd(STREAM, "*", { operation, payload: JSON.stringify(payload) });
+
+  const id = await redisClient.xAdd("dbStream", "*", {
+    operation,
+    payload: JSON.stringify(payload),
+  });
+
+  if (!id) throw new Error("Failed to write to buffer");
+
+  return id;
 }
 
 async function ackHelper(messageIds) {
   if (messageIds.length === 0) return;
-  await redisClient.xAck(STREAM, GROUP, messageIds);
+
+  await redisClient.xAck("dbStream", "db-writer", messageIds);
 }
 
-// Messages that can never succeed are parked here instead of blocking the queue forever.
-async function deadLetter(originalId, message, reason) {
-  await redisClient.xAdd(DEAD_STREAM, "*", {
-    originalId,
-    reason: String(reason).slice(0, 500),
-    operation: message?.operation ?? "",
-    payload: message?.payload ?? "",
-  });
-}
-
-// pending=true  -> re-read messages this consumer was given but never acked (crash/failure recovery)
-// pending=false -> wait up to blockMs for NEW messages; returns as soon as at least one arrives
-async function readBuffer({ consumer, count, blockMs, pending }) {
-  const reader = await getReader();
-  const res = await reader.xReadGroup(
-    GROUP,
-    consumer,
-    { key: STREAM, id: pending ? "0" : ">" },
-    pending ? { COUNT: count } : { COUNT: count, BLOCK: blockMs },
+async function readBuffer(streamName) {
+  const result = await redisClient.xReadGroup(
+    "db-writer",
+    "worker-1",
+    {
+      key: streamName,
+      id: ">",
+    },
+    {
+      COUNT: 100,
+      BLOCK: 10_000,
+    },
   );
-  if (!res) return [];
-  return res[0]?.messages ?? [];
+
+  if (!result) return null;
+
+  return result;
 }
 
 export {
@@ -86,7 +81,6 @@ export {
   delKey,
   writeBuffer,
   ackHelper,
-  deadLetter,
   readBuffer,
-  ensureConsumerGroup,
+  ensureConsumerGroup
 };
