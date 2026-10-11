@@ -1,5 +1,5 @@
 node_modules
-aws-t2-micro-scaledb.pem
+*.pem
 .env
 *.rar
 *.zip
