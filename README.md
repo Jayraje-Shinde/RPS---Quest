@@ -20,6 +20,19 @@ Some of the key things I plan to test are:
 
 The testing will be done using **Autocannon** to generate high volumes of requests and push the server to its limits. The goal is not to simulate real-world users or production traffic patterns, but to find the server's performance ceiling, measure requests per second (RPS), identify bottlenecks, and understand how different optimizations affect overall throughput.
 
+### Out of scope
+
+This project is complete for its intended learning objective: understanding and implementing practical scaling techniques for a small API on a single server. It is not intended to be a production-ready system or a complete distributed-systems implementation.
+
+The following are intentionally out of scope:
+
+- Production-grade request validation, authentication, authorization, and secrets management.
+- Full cache consistency across Nginx, Redis, and PostgreSQL, including cache stampede prevention.
+- Strong ordering, locking, and concurrency guarantees for simultaneous updates or deletes.
+- Exactly-once processing, comprehensive idempotency, and complete crash-consistency guarantees.
+- Production deployment hardening, high availability, observability, migrations, and operational automation.
+- Scaling beyond the demonstrated single-server architecture.
+
 ## Project overview
 
 This is a Node.js performance and scaling experiment for a customer CRUD API.
@@ -173,11 +186,12 @@ Client
   -> 202 response with Redis stream message ID
 
 Redis worker
-  -> XREADGROUP dbStream
+  -> Recovers pending or stale entries with XREADGROUP/XAUTOCLAIM
+  -> XREADGROUP dbStream for new entries
   -> Accumulates messages
   -> Flushes when batch size or timeout is reached
-  -> Inserts customers into PostgreSQL
-  -> XACKs processed messages
+  -> Inserts customers in a PostgreSQL transaction
+  -> XACKs and removes entries only after the database commit succeeds
 ```
 
 This path is asynchronous. A successful HTTP response means the customer was placed in the Redis Stream, not necessarily that the row already exists in PostgreSQL.
@@ -189,7 +203,10 @@ BATCHING_SIZE=100
 BATCHING_TIMEOUT=10000 ms
 ```
 
-The worker uses consumer group `db-writer` and consumer name `worker-1`.
+The worker uses consumer group `db-writer` and consumer name `worker-1` by default; the consumer name can be overridden with
+`CONSUMER_NAME`. Pending entries are retried after failures with exponential backoff. Invalid JSON and unsupported operations
+are written to the `dbStream:dead` dead-letter stream and acknowledged so they do not block the queue. The main stream is
+approximately trimmed at the configured maximum length, which defaults to one million entries.
 
 ### Customer update
 
