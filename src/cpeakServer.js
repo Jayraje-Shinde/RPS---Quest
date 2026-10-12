@@ -18,8 +18,7 @@ server.beforeEach(trackRequests);
 server.beforeEach(parseJSON({ limit: 1024 * 1024 }));
 
 server.route("get", "/", (req, res) => {
-  console.log("Request received");
-  return res.json({ message: "Hi there!" });
+  return res.status(200).json({ message: "Hi there!" });
 });
 
 server.route("get", "/customers/v1/:id", async (req, res) => {
@@ -28,7 +27,7 @@ server.route("get", "/customers/v1/:id", async (req, res) => {
       const customers =
         await sql`SELECT * FROM customers where id=${req.params.id}`;
 
-      res.json(customers);
+      res.status(200).json(customers);
 
 
     }
@@ -42,12 +41,12 @@ server.route("get", "/customers/v2/:id", async (req, res) => {
   try {
     const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
     if (customer) {
-      return res.json(customer);
+      return res.status(200).json(customer);
     } else {
       const customers =
         await sql`SELECT * FROM customers where id=${req.params.id}`;
 
-      res.json(customers);
+      res.status(200).json(customers);
 
 
       setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300)
@@ -62,9 +61,10 @@ server.route("get", "/customers/v2/:id", async (req, res) => {
 server.route("post", "/customers/v1", async (req, res) => {
   const { name, email, city, country } = req.body;
 
-  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country})`
+  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country}) RETURNING id`;
 
-  res.status(202).json({
+  res.status(201).json({
+    id,
     message: "Customer Added"
   });
 });
@@ -86,12 +86,23 @@ server.route("put", "/customers/:id", async (req, res) => {
 
   await delKey(`customer:${req.params.id}`);
 
-  res.send("Customer updated");
+  res.status(200).send("Customer updated");
 });
 
 server.route("delete", "/customers/v1/:id", async (req, res) => {
+  try {
+
   await sql`DELETE FROM customers WHERE id=${req.params.id}`;
-  res.send("Customer deleted");
+  await delKey(`customer:${req.params.id}`);
+  } catch (error) {
+    return res.status(500).json({
+      msg : "Failed to delete customer",
+      error
+    })
+  }
+
+  res.status(200).send("Customer deleted");
+
 });
 
 server.listen(process.env.APP_PORT, () => {

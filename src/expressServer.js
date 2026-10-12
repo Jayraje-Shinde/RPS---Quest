@@ -1,7 +1,8 @@
-import express from 'express'
+import express from "express";
 import "./config/env.js";
-import { writeBuffer, getValue, setKV, delKey} from "./redis/redis.js";
+import { trackRequests, log } from "./lib/logger.js";
 import { sql } from "./db/dbClient.js";
+import { getValue, setKV, writeBuffer, delKey } from "./redis/redis.js";
 
 try {
   await sql`SELECT 1`;
@@ -10,58 +11,85 @@ try {
   console.error("Failed to connect to the database", error);
 }
 
-
-const app = express()
+const app = express();
 
 app.use(express.json());
 
-
-app.get('/', (req, res) => {
-   console.log("Request received");
-  res.send('Hello World')
-})
-
-app.get('/customers/:id', async (req, res) => {
-
-  const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
-
-  if(customer) {
-    return res.json(customer);
-  } else {
-    const customers =
-      await sql`SELECT * FROM customers where id=${req.params.id}`;
-    res.json(customers);
-
-    setKV(`customer:${req.params.id}`, customers, 300);
-  }
-
+app.get("/", (req, res) => {
+  res.status(200).send("Hello World");
 });
 
-app.post('/customers', async (req, res) => {
+app.get("/customers/v1/:id", async (req, res) => {
+  try {
+    const customers =
+      await sql`SELECT * FROM customers where id=${req.params.id}`;
+
+
+
+    res.status(200).json(customers);
+
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/customers/v2/:id", async (req, res) => {
+  try {
+    const customer = JSON.parse(await getValue(`customer:${req.params.id}`));
+    if (customer) {
+      return res.status(200).json(customer);
+    } else {
+      const customers =
+        await sql`SELECT * FROM customers where id=${req.params.id}`;
+
+      res.status(200).json(customers);
+
+      setKV(`customer:${req.params.id}`, JSON.stringify(customers), 300).catch(
+        (err) => console.error("cache set failed:", err.message),
+      );
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/customers/v1", async (req, res) => {
+  const { name, email, city, country } = req.body;
+
+  const id = await sql`INSERT INTO CUSTOMERS(name, email,city,country) VALUES(${name}, ${email}, ${city}, ${country}) RETURNING id`;
+
+  res.status(201).json({
+    id,
+    message: "Customer queue for creation"
+  });
+});
+
+app.post("/customers/v2", async (req, res) => {
   const { name, email, city, country } = req.body;
 
   const id = await writeBuffer("CREATE_USER", { name, email, city, country });
 
-  res.status(201).json({
+  res.status(202).json({
     message: "Customer queue for creation",
     id,
   });
 });
 
-app.put('/customers/:id', async(req, res) => {
+app.put("/customers/:id", async (req, res) => {
   const { name, email, city, country } = req.body;
   await sql`UPDATE customers SET name=${name}, email=${email}, city=${city}, country=${country} WHERE id=${req.params.id}`;
   await delKey(`customer:${req.params.id}`);
-  res.send('Customer updated');
+  res.status(200).send("Customer updated");
 });
 
-app.delete('/customers/:id', async (req, res) => {
+app.delete("/customers/:id", async (req, res) => {
   await sql`DELETE FROM customers WHERE id=${req.params.id}`;
-  await delKey(`customer: ${ req.params.id }`);
-  res.send('Customer deleted');
+  await delKey(`customer:${req.params.id}`);
+  res.status(200).send("Customer deleted");
 });
-
 
 app.listen(process.env.APP_PORT, () => {
-  console.log(`Server is running on http://localhost:${process.env.APP_PORT}`)
-})
+  console.log(`Server is running on http://localhost:${process.env.APP_PORT}`);
+});
