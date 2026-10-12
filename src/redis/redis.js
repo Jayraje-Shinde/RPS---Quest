@@ -11,7 +11,7 @@ const STREAM_MAXLEN = Number(process.env.STREAM_MAXLEN ?? 1_000_000);
 const redisClient = createClient({
   socket: {
     host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT), // env vars are strings -> convert
+    port: Number(process.env.REDIS_PORT),
   },
 });
 
