@@ -144,7 +144,18 @@ Request body:
 }
 ```
 
-The current active `src/cpeakServer.js` does not return the inserted database ID for this path and returns status `202`.
+The active Cpeak implementation inserts the customer synchronously, returns the inserted ID, and responds with `201 Created`:
+
+```json
+{
+  "id": [
+    {
+      "id": 1
+    }
+  ],
+  "message": "Customer Added"
+}
+```
 
 ### Queued customer creation
 
@@ -196,7 +207,7 @@ There is no `/v1` or `/v2` distinction for update operations.
 DELETE /customers/v1/:id
 ```
 
-The active Cpeak implementation does not invalidate the Redis cache after deletion. Therefore, a previously cached customer can remain available from Redis until its cache TTL expires.
+The active Cpeak implementation deletes the row and invalidates the corresponding Redis cache key before returning `200 OK`.
 
 ## Implemented routes
 
@@ -208,14 +219,16 @@ The active Cpeak implementation does not invalidate the Redis cache after deleti
 | POST   | `/customers/v1`     | Direct PostgreSQL insert                        |
 | POST   | `/customers/v2`     | Asynchronous Redis Stream insert                |
 | PUT    | `/customers/:id`    | PostgreSQL update and Redis invalidation        |
-| DELETE | `/customers/v1/:id` | PostgreSQL delete                               |
+| DELETE | `/customers/v1/:id` | PostgreSQL delete and Redis invalidation        |
 
-There is also an alternative Express implementation in `src/expressServer.js` with simpler routes:
+There is also an alternative Express implementation in `src/expressServer.js`. It exposes the same versioned customer read/create routes as the Cpeak implementation, plus the unversioned update and delete routes:
 
 ```text
 GET    /
-GET    /customers/:id
-POST   /customers
+GET    /customers/v1/:id
+GET    /customers/v2/:id
+POST   /customers/v1
+POST   /customers/v2
 PUT    /customers/:id
 DELETE /customers/:id
 ```
